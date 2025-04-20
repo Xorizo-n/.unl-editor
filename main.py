@@ -6,44 +6,40 @@ from xml.etree import ElementTree as ET
 
 
 def decode_textobject(data):
-    """Декодирует Base64 → URL → HTML."""
+    """Декодирует Base64 → URL → HTML"""
     try:
-        decoded_html = urllib.parse.unquote(base64.b64decode(data).decode("utf-8"))
-        return decoded_html
+        return urllib.parse.unquote(base64.b64decode(data).decode("utf-8"))
     except Exception as e:
         print(f"Ошибка декодирования: {e}")
         return None
 
 
-def render_html(html_content, output_file):
-    """Сохраняет HTML в файл и открывает в браузере."""
-    html_path = Path(output_file)
-    html_path.write_text(html_content, encoding="utf-8")
-    webbrowser.open(f"file://{html_path.absolute()}")
+def process_xml(xml_file, output_html="combined.html"):
+    """Обрабатывает XML и объединяет все textobject в один HTML."""
+    combined_html = "<!DOCTYPE html><html><head><meta charset='UTF-8'></head><body>"
 
-
-def process_xml(xml_file):
-    """Парсит XML, находит textobject и декодирует их."""
     try:
         tree = ET.parse(xml_file)
         root = tree.getroot()
 
-        # Находим все textobject
-        for i, textobject in enumerate(root.findall(".//textobject"), start=1):
+        for textobject in root.findall(".//textobject"):
             data = textobject.find("data").text
             if not data:
                 continue
 
-            decoded_html = decode_textobject(data)
-            if decoded_html:
-                print(f"\n--- Textobject {i} ---")
-                print(decoded_html)
-                render_html(decoded_html, f"textobject_{i}.html")
+            decoded = decode_textobject(data)
+            if decoded:
+                combined_html += decoded  # Просто добавляем HTML друг за другом
+
+        combined_html += "</body></html>"
+
+        # Сохраняем и открываем
+        Path(output_html).write_text(combined_html, encoding="utf-8")
+        webbrowser.open(f"file://{Path(output_html).absolute()}")
 
     except Exception as e:
-        print(f"Ошибка обработки XML: {e}")
+        print(f"Ошибка: {e}")
 
 
 if __name__ == "__main__":
-    xml_file = "C:/Users/s.u.mirzagitov/Downloads/2-1 DHCPv4.xml"  # Укажите путь к вашему XML
-    process_xml(xml_file)
+    process_xml("2-1 DHCPv4.unl")  # Укажите ваш XML-файл
